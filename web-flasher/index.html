@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Nạp firmware AirPrint TS207</title>
+  <meta name="description" content="Nạp firmware máy chủ in AirPrint cho máy in Canon TS207 lên mạch ESP32-S3 ngay trên trình duyệt.">
+  <script type="module" src="https://unpkg.com/esp-web-tools@10.5.2/dist/web/install-button.js?module"></script>
+  <style>
+    :root {
+      --bg: #f4f5f7; --card: #ffffff; --text: #16181d; --muted: #5b6270;
+      --line: #e3e6eb; --accent: #0a7c3e; --accent-ink: #ffffff; --warn-bg: #fff6e0; --warn-line: #f0d48a;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #111316; --card: #1b1e23; --text: #eef0f3; --muted: #a2a9b5;
+        --line: #2c3038; --accent: #2fb36b; --accent-ink: #08130c; --warn-bg: #2a2416; --warn-line: #6b5a2a;
+      }
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; background: var(--bg); color: var(--text);
+      font: 16px/1.55 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    }
+    main { max-width: 640px; margin: 0 auto; padding: 32px 16px 48px; }
+    h1 { font-size: 26px; line-height: 1.25; margin: 0 0 6px; }
+    .sub { color: var(--muted); margin: 0 0 24px; }
+    .card {
+      background: var(--card); border: 1px solid var(--line); border-radius: 14px;
+      padding: 20px; margin-bottom: 16px;
+    }
+    .install { text-align: center; padding: 28px 20px; }
+    .version { color: var(--muted); font-size: 14px; margin-top: 12px; }
+    esp-web-install-button button[slot="activate"] {
+      background: var(--accent); color: var(--accent-ink); border: 0; border-radius: 10px;
+      font: 600 17px/1 system-ui, sans-serif; padding: 15px 28px; cursor: pointer;
+    }
+    esp-web-install-button button[slot="activate"]:hover { filter: brightness(1.08); }
+    .unsupported, .not-allowed {
+      color: var(--text); background: var(--warn-bg); border: 1px solid var(--warn-line);
+      border-radius: 10px; padding: 12px 14px; display: block; text-align: left;
+    }
+    h2 { font-size: 18px; margin: 0 0 12px; }
+    ol { margin: 0; padding-left: 22px; }
+    li { margin: 8px 0; }
+    .tag {
+      display: inline-block; font: 600 13px/1 ui-monospace, Consolas, monospace;
+      border: 1px solid var(--line); border-radius: 6px; padding: 3px 6px; background: var(--bg);
+    }
+    .note { color: var(--muted); font-size: 14px; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Nạp firmware AirPrint TS207</h1>
+    <p class="sub">Biến máy in Canon TS207 chỉ có USB thành máy in Wi-Fi, in được từ iPhone, Android và máy tính. Dành cho mạch ESP32-S3 (Lily Touch / ostb-xiaozhi-3st).</p>
+
+    <section class="card install">
+      <esp-web-install-button manifest="manifest.json">
+        <button slot="activate">Nạp firmware</button>
+        <span slot="unsupported" class="unsupported">Trình duyệt này không nạp được. Hãy mở trang bằng <b>Chrome</b> hoặc <b>Edge</b> trên máy tính.</span>
+        <span slot="not-allowed" class="not-allowed">Trang phải mở qua <b>https</b> mới nạp được.</span>
+      </esp-web-install-button>
+      <div class="version">Phiên bản 0.2.0 · ESP32-S3</div>
+    </section>
+
+    <section class="card">
+      <h2>Các bước</h2>
+      <ol>
+        <li>Nếu mạch đang chạy firmware in: chạm nút <span class="tag">NAP FW</span> trên màn hình, chờ màn hình hiện <span class="tag">NAP USB</span>. Nếu mạch đang chạy Lily thì bỏ qua bước này.</li>
+        <li>Cắm cáp từ máy tính vào cổng <span class="tag">USB 5V/IN</span> của mạch (không phải cổng UART). Dùng cáp có truyền dữ liệu.</li>
+        <li>Bấm <b>Nạp firmware</b>, chọn cổng <span class="tag">USB JTAG/serial debug unit</span> rồi bấm Connect.</li>
+        <li>Lần đầu chuyển từ Lily sang: tích chọn <b>xoá thiết bị</b> (Erase) khi được hỏi. Các lần cập nhật sau thì không cần.</li>
+        <li>Nạp xong, mạch tự khởi động lại. Màn hình hiện mã QR: quét bằng camera điện thoại để vào Wi-Fi <span class="tag">canon-ts207-Setup</span>, mở <span class="tag">192.168.4.1</span>, chọn Wi-Fi nhà và nhập mật khẩu.</li>
+        <li>Cắm máy in Canon TS207 vào cổng <span class="tag">USB 5V/IN</span> (qua đầu chuyển OTG). Trên điện thoại chọn In, chọn <b>Canon TS207 (ESP32)</b>.</li>
+      </ol>
+    </section>
+
+    <section class="card">
+      <h2>Không thấy cổng để chọn?</h2>
+      <ol>
+        <li>Đổi sang cáp khác: cáp chỉ để sạc sẽ không nạp được.</li>
+        <li>Kiểm tra lại cáp đang cắm ở cổng <span class="tag">USB 5V/IN</span>.</li>
+        <li>Bấm nút nguồn trên mạch để khởi động lại, rồi bấm Nạp firmware ngay trong 15 giây đầu.</li>
+      </ol>
+      <p class="note">Firmware dựa trên dự án mã nguồn mở esp32-usb-to-airprint (MIT). Driver TS207 chưa được kiểm tra trên mọi máy in.</p>
+    </section>
+  </main>
+</body>
+</html>

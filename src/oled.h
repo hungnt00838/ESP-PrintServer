@@ -9,8 +9,14 @@
 
 #include <stdbool.h>
 
+#include "oled_ui.h"
+
 void oled_start(const char *hostname);
 // A button was pressed: keeps the screen on, or turns it back on. Returns
 // true if it was off (the press only wakes it), false otherwise (also without
 // a display).
 bool oled_wake(void);
+
+// The state the status screen shows (also used by the colour LCD, lcd.c).
+void oled_gather(oled_state_t *st);
+void oled_set_hostname(const char *hostname);

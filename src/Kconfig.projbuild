@@ -74,4 +74,34 @@ menu "Printer server"
             OLED pixels that stay lit for months burn in. Any change on the
             screen or a press of the button turns it back on.
 
+    config LCD_NV3023
+        bool "NV3023 colour status screen (ostb-xiaozhi-3st / Lily Touch board)"
+        default n
+
+    config LCD_BATTERY_ADC_GPIO
+        int "Battery voltage ADC GPIO (-1 = log GPIO1..3 to find it)"
+        depends on LCD_NV3023
+        default -1
+
+    config LCD_BATTERY_DIVIDER_X100
+        int "Battery voltage divider ratio x100 (200 = 1:2)"
+        depends on LCD_NV3023
+        default 200
+
+    config LCD_CHARGING_LEVEL
+        int "GPIO47 level while charging (0 or 1)"
+        depends on LCD_NV3023
+        range 0 1
+        default 1
+
+    config LCD_MADCTL
+        hex "NV3023 MADCTL (0x60 = landscape, 0xA0 = landscape turned 180)"
+        depends on LCD_NV3023
+        default 0x60
+
+    config LCD_BACKLIGHT_OFF_MIN
+        int "Backlight off after this many minutes without change (0 = never)"
+        depends on LCD_NV3023
+        default 3
+
 endmenu

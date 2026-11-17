@@ -1,3 +1,16 @@
+# ESP-PrintServer: AirPrint cho Canon TS207 trên mạch Lily Touch
+
+Bản fork của [ngxson/esp32-usb-to-airprint](https://github.com/ngxson/esp32-usb-to-airprint) (MIT), thêm:
+
+- Driver **Canon PIXMA TS200 series (TS207)**, dựa trên luồng lệnh iP2800 (chưa kiểm tra trên mọi máy in).
+- Hỗ trợ mạch **ostb-xiaozhi-3st** (bán dưới tên "Lily Touch"): màn hình NV3023 296x240, cảm ứng CST816, đo pin (GPIO17), báo sạc (GPIO47).
+- Màn hình trạng thái tiếng Việt (không dấu): tên firmware, % pin, IP, Wi-Fi, trạng thái máy in.
+- **Cài Wi-Fi bằng mã QR**: mất Wi-Fi 7 giây là mạch phát `canon-ts207-Setup` và hiện QR; trang cài đặt ở 192.168.4.1. Không cần khởi động lại.
+- Nút cảm ứng **NAP FW / CHE DO IN**: giữ cổng USB ở chế độ nạp, hoặc chuyển về chế độ cắm máy in.
+- Trang **nạp firmware trên trình duyệt** trong `web-flasher/` (ESP Web Tools), triển khai được lên Vercel.
+
+---
+
 # Add AirPrint / AirScan support to your old printer, using just a cheap ESP32-S3
 
 > [!IMPORTANT]

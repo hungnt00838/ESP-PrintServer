@@ -34,6 +34,8 @@
 #include "status_led.h"
 #include "usb_printer.h"
 #include "wifi.h"
+#include "lcd.h"
+#include "usb_mode.h"
 
 static const char *TAG = "main";
 
@@ -237,6 +239,22 @@ static bool healthy(void)
     return wifi_connected() && (strcmp(MODE, "debug") != 0 || s_debug_server_up);
 }
 
+#define USB_HOST_DELAY_S 15
+
+static void usb_start_task(void *arg)
+{
+    if (usb_mode_flash()) {
+        ESP_LOGW(TAG, "USB port: flash mode, no printer host");
+        vTaskDelete(NULL);
+        return;
+    }
+    ESP_LOGW(TAG, "USB port: reflash window, the printer host starts in %d s", USB_HOST_DELAY_S);
+    vTaskDelay(pdMS_TO_TICKS(USB_HOST_DELAY_S * 1000));
+    ESP_LOGW(TAG, "USB port: starting the printer host (USB log ends here)");
+    ESP_ERROR_CHECK(usb_printer_start(on_printer));
+    vTaskDelete(NULL);
+}
+
 static void ota_confirm_task(void *arg)
 {
     debug_ota_confirm(healthy, 20, 180);
@@ -261,8 +279,15 @@ void app_main(void)
         debug_log_start(64 * 1024);
     ESP_ERROR_CHECK(status_led_init());
     status_led_set(LED_WAITING);
+    usb_mode_init();
     oled_start(HOSTNAME);
-    ESP_ERROR_CHECK(usb_printer_start(on_printer));
+#if CONFIG_LCD_NV3023
+    lcd_start(HOSTNAME);
+#endif
+    // the USB port stays a USB-Serial/JTAG (log + reflashing) for a while
+    // before it turns into the printer's host: a board without a BOOT button
+    // can always be reflashed in that window
+    xTaskCreate(usb_start_task, "usb_start", 3072, NULL, 5, NULL);
     xTaskCreate(button_task, "button", 3072, NULL, 5, NULL);
     ESP_LOGI(TAG, "ready: press BOOT (or GPIO%d) to scan, twice for a test page", CONFIG_PRINT_BUTTON2_GPIO);
 

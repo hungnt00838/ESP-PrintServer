@@ -152,11 +152,11 @@ static bool reattach(void)
     return true;
 }
 
-static void gather(oled_state_t *st)
+void oled_gather(oled_state_t *st)
 {
     memset(st, 0, sizeof(*st));
     st->name = s_hostname;
-    st->wifi_configured = WIFI_SSID[0] != 0;
+    st->wifi_configured = wifi_configured();
     if (wifi_connected()) {
         wifi_get_ip(st->ip, sizeof(st->ip));
         st->rssi = wifi_rssi();
@@ -193,7 +193,7 @@ static void oled_task(void *arg)
                 continue;
             }
         }
-        gather(&s_state);
+        oled_gather(&s_state);
         oled_ui_render(&s_state, s_fb);
         // the WiFi signal alone does not count as a change
         uint8_t saved[24];
@@ -237,6 +237,7 @@ static void oled_task(void *arg)
 void oled_start(const char *hostname)
 {
     s_hostname = hostname;
+    oled_set_hostname(hostname);
     i2c_master_bus_config_t bus = {
         .i2c_port = -1,
         .sda_io_num = CONFIG_OLED_SDA_GPIO,
@@ -272,6 +273,11 @@ void oled_start(const char *hostname)
     ESP_LOGI(TAG, "display at 0x%02x (SDA GPIO%d, SCL GPIO%d)", s_addr, CONFIG_OLED_SDA_GPIO, CONFIG_OLED_SCL_GPIO);
     if (xTaskCreate(oled_task, "oled", 4096, NULL, 2, &s_task) != pdPASS)
         ESP_LOGE(TAG, "cannot start the display task");
+}
+
+void oled_set_hostname(const char *hostname)
+{
+    s_hostname = hostname;
 }
 
 bool oled_wake(void)

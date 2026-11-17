@@ -219,13 +219,13 @@ static bool has_reason(const airprint_status_t *st, const char *reason)
 static const char *problem(const airprint_status_t *st)
 {
     if (has_reason(st, "media-jam-error"))
-        return "PAPER JAM";
+        return "KET GIAY";
     if (has_reason(st, "cover-open-error"))
-        return "COVER OPEN";
+        return "MO NAP";
     if (has_reason(st, "media-empty-error"))
-        return "NO PAPER";
+        return "HET GIAY";
     if (has_reason(st, "marker-supply-empty-error"))
-        return "NO INK";
+        return "HET MUC";
     return NULL;
 }
 
@@ -240,7 +240,7 @@ static int supply_level(const airprint_status_t *st, const char *name)
 // "Ink K [====  ] C [==    ]"; "?" for a level the printer does not know
 static void ink_levels(uint8_t *fb, int y, const airprint_status_t *st)
 {
-    int x = oled_text(fb, 0, y, "Ink", 1) + 4;
+    int x = oled_text(fb, 0, y, "Muc", 1) + 4;
     const char *labels[2] = {"K", "C"};
     const char *names[2] = {"Black", "Color"};
     for (int i = 0; i < 2; i++) {
@@ -284,27 +284,27 @@ static void render_scan(uint8_t *fb, const scan_info_t *sc)
     char buf[48];
     scan_settings(buf, sizeof(buf), sc);
     if (is(sc->state, "scanning")) {
-        headline(fb, "SCANNING");
+        headline(fb, "DANG QUET");
         oled_text(fb, 0, Y_LINE1, buf, 1);
         text_right(fb, OLED_WIDTH - 1, Y_LINE1, source_label(sc->source));
         if (sc->lines <= 0 || sc->height <= 0)
-            line(fb, Y_LINE2, "Warming up...");
+            line(fb, Y_LINE2, "Dang khoi dong...");
         else
             progress(fb, 0, Y_LINE2, (int)(100LL * sc->lines / sc->height));
     } else if (is(sc->state, "done")) {
-        headline(fb, "SCANNED");
+        headline(fb, "DA QUET");
         line(fb, Y_LINE1, buf);
         char size[16];
         format_size(size, sizeof(size), sc->bytes);
         snprintf(buf, sizeof(buf), "%s JPEG", size);
         line(fb, Y_LINE2, buf);
     } else if (is(sc->state, "canceled")) {
-        headline(fb, "CANCELED");
-        line(fb, Y_LINE1, "Scan canceled");
+        headline(fb, "DA HUY");
+        line(fb, Y_LINE1, "Da huy quet");
     } else {
-        headline(fb, "FAILED");
-        line(fb, Y_LINE1, "Scan failed:");
-        line(fb, Y_LINE2, sc->error[0] ? sc->error : "unknown error");
+        headline(fb, "BI LOI");
+        line(fb, Y_LINE1, "Quet bi loi:");
+        line(fb, Y_LINE2, sc->error[0] ? sc->error : "loi khong ro");
     }
 }
 
@@ -313,28 +313,28 @@ static void render_job(uint8_t *fb, const airprint_activity_t *pa)
     char buf[32];
     const char *state = pa->job.state;
     if (is(state, "pending") || is(state, "processing")) {
-        headline(fb, "PRINTING");
+        headline(fb, "DANG IN");
         line(fb, Y_LINE1, pa->job.name);
         if (is(state, "pending")) {
-            line(fb, Y_LINE2, "Receiving...");
+            line(fb, Y_LINE2, "Dang nhan...");
         } else {
-            snprintf(buf, sizeof(buf), "Page %d", pa->job.pages + 1);
+            snprintf(buf, sizeof(buf), "Trang %d", pa->job.pages + 1);
             int x = oled_text(fb, 0, Y_LINE2, buf, 1) + 4;
             progress(fb, x, Y_LINE2, pa->job.percent);
         }
     } else if (is(state, "completed")) {
-        headline(fb, "PRINTED");
+        headline(fb, "DA IN XONG");
         line(fb, Y_LINE1, pa->job.name);
-        snprintf(buf, sizeof(buf), "%d page%s", pa->job.pages, pa->job.pages == 1 ? "" : "s");
+        snprintf(buf, sizeof(buf), "%d trang", pa->job.pages);
         line(fb, Y_LINE2, buf);
     } else if (is(state, "canceled")) {
-        headline(fb, "CANCELED");
+        headline(fb, "DA HUY");
         line(fb, Y_LINE1, pa->job.name);
-        line(fb, Y_LINE2, "Print canceled");
+        line(fb, Y_LINE2, "Da huy lenh in");
     } else {
-        headline(fb, "FAILED");
+        headline(fb, "BI LOI");
         line(fb, Y_LINE1, pa->job.name);
-        line(fb, Y_LINE2, "Print failed");
+        line(fb, Y_LINE2, "In bi loi");
     }
 }
 
@@ -348,7 +348,7 @@ void oled_ui_render(const oled_state_t *st, uint8_t *fb)
     text_fit(fb, 0, Y_NAME, st->name ? st->name : "", OLED_WIDTH - 20);
     if (st->wifi_configured)
         wifi_icon(fb, OLED_WIDTH - 1, Y_NAME, st->ip[0] != 0, st->rssi);
-    line(fb, Y_IP, st->ip[0] ? st->ip : st->wifi_configured ? "Connecting to WiFi..." : "No WiFi configured");
+    line(fb, Y_IP, st->ip[0] ? st->ip : st->wifi_configured ? "Dang ket noi WiFi..." : "Chua cai WiFi");
     oled_fill(fb, 0, Y_RULE, OLED_WIDTH, 1, true);
 
     // what the device does, most important first
@@ -360,20 +360,20 @@ void oled_ui_render(const oled_state_t *st, uint8_t *fb)
     } else if (job_running) {
         render_job(fb, pa);
     } else if (pa->status.busy) {
-        headline(fb, "PRINTING");       // the button's test page
-        line(fb, Y_LINE1, "Test page");
+        headline(fb, "DANG IN");       // the button's test page
+        line(fb, Y_LINE1, "Trang in thu");
     } else if (scan_recent && (!job_recent || sc->ended_ago <= pa->job.ended_ago)) {
         render_scan(fb, sc);
     } else if (job_recent) {
         render_job(fb, pa);
     } else if (!pa->status.connected) {
-        headline(fb, "NO PRINTER");
-        line(fb, Y_LINE1, "Turn on the printer,");
-        line(fb, Y_LINE2, "check the USB cable");
+        headline(fb, "CHO MAY IN");
+        line(fb, Y_LINE1, "Hay bat may in va");
+        line(fb, Y_LINE2, "kiem tra cap USB");
     } else {
         const char *p = problem(&pa->status);
-        headline(fb, p ? p : "READY");
-        line(fb, Y_LINE1, pa->status.message[0] ? pa->status.message : "Press BOOT to scan");
+        headline(fb, p ? p : "SAN SANG");
+        line(fb, Y_LINE1, pa->status.message[0] ? pa->status.message : "In qua WiFi duoc");
         ink_levels(fb, Y_LINE2, &pa->status);
     }
 }

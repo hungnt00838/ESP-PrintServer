@@ -1,3 +1,4 @@
+#include "wifi_setup.h"
 #include "airprint_esp.h"
 
 #include <stdio.h>
@@ -226,6 +227,8 @@ static void dev_job_close(void *ctx, bool ok)
 
 static bool web_http(airprint_http_t *h, const char *method, const char *path)
 {
+    if (wifi_setup_http(h, method, path))     // the WiFi setup portal, while it is open
+        return true;
     return scan_service_http(h, method, path) || events_http(h, method, path) || webui_http(h, method, path);
 }
 

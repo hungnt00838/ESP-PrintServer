@@ -185,22 +185,22 @@ static void status(const char *state, const char *detail, const char *data, airp
     const char *d = detail ? detail : "";
     if (strstr(d, "MarkerSupplyEmpty") || strstr(d, "MarkerSupplyMissing")) {
         add_reason(st, "marker-supply-empty-error");
-        snprintf(st->message, sizeof(st->message), "Ink cartridge empty or missing");
+        snprintf(st->message, sizeof(st->message), "Het muc / thieu hop muc");
     } else if (strstr(d, "MarkerSupplyAttention") || strstr(d, "MarkerSupplyLow")) {
         add_reason(st, "marker-supply-low-warning");
-        snprintf(st->message, sizeof(st->message), "Ink low");
+        snprintf(st->message, sizeof(st->message), "Sap het muc");
     }
     if (strstr(d, "MediaEmpty") || strstr(d, "MediaNeeded")) {
         add_reason(st, "media-empty-error");
-        snprintf(st->message, sizeof(st->message), "Out of paper");
+        snprintf(st->message, sizeof(st->message), "Het giay");
     }
     if (strstr(d, "MediaJam")) {
         add_reason(st, "media-jam-error");
-        snprintf(st->message, sizeof(st->message), "Paper jam");
+        snprintf(st->message, sizeof(st->message), "Ket giay");
     }
     if (strstr(d, "DoorOpen") || strstr(d, "CoverOpen")) {
         add_reason(st, "cover-open-error");
-        snprintf(st->message, sizeof(st->message), "Cover open");
+        snprintf(st->message, sizeof(st->message), "Dang mo nap");
     }
     st->nsupplies = 2;
     st->supply[0].name = "Black";
@@ -266,6 +266,8 @@ CANON_PIXMA(canon_mg3000_driver, "canon-mg3000", "MG3000 series", 0x180b, BJL_MO
 CANON_PIXMA(canon_e470_driver, "canon-e470", "E470 series", 0x180c, BJL_MODEL_MG2900, true);
 CANON_PIXMA(canon_e460_driver, "canon-e460", "E460 series", 0x1788, BJL_MODEL_MG2900, true);
 CANON_PIXMA(canon_ip2800_driver, "canon-ip2800", "iP2800 series", 0, BJL_MODEL_IP2800, false);
+// TS200 series (TS207): iP2800 successor, same PG-745/CL-746 cartridges; untested
+CANON_PIXMA(canon_ts200_driver, "canon-ts200", "TS200 series", 0, BJL_MODEL_IP2800, false);
 CANON_PIXMA(canon_e3100_driver, "canon-e3100", "E3100 series", 0x1828, BJL_MODEL_E3100, true);
 CANON_PIXMA(canon_ts3100_driver, "canon-ts3100", "TS3100 series", 0x1827, BJL_MODEL_E3100, true);
 CANON_PIXMA(canon_mp230_driver, "canon-mp230", "MP230 series", 0x175f, BJL_MODEL_MP230, true);
