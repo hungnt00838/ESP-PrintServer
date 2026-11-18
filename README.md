@@ -8,6 +8,8 @@ Bản fork của [ngxson/esp32-usb-to-airprint](https://github.com/ngxson/esp32-
 - **Cài Wi-Fi bằng mã QR**: mất Wi-Fi 7 giây là mạch phát `canon-ts207-Setup` và hiện QR; trang cài đặt ở 192.168.4.1. Không cần khởi động lại.
 - Nút cảm ứng **NAP FW / CHE DO IN**: giữ cổng USB ở chế độ nạp, hoặc chuyển về chế độ cắm máy in.
 - Trang **nạp firmware trên trình duyệt** trong `web-flasher/` (ESP Web Tools), triển khai được lên Vercel.
+  Có 2 lựa chọn: Lily Touch và ESP32-S3 N16R8. Bản công khai được build từ `.env.public` (không có Wi-Fi):
+  `PRINTSERVER_ENV_FILE=.env.public pio run -e esp32s3` và `-e s3_n16r8`, rồi chép các file .bin vào `web-flasher/firmware/lily/` và `web-flasher/firmware/s3-n16r8/`.
 
 ### Mạch ESP32-S3 N16R8 không màn hình (`pio run -e s3_n16r8`)
 

@@ -1,7 +1,7 @@
 {
   "headers": [
     {
-      "source": "/manifest.json",
+      "source": "/manifest(.*).json",
       "headers": [{ "key": "Cache-Control", "value": "no-cache" }]
     },
     {

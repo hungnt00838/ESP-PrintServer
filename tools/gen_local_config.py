@@ -5,6 +5,10 @@
 Runs automatically before every PlatformIO build (extra_scripts in
 platformio.ini); can also be run by hand: python3 tools/gen_local_config.py
 
+PRINTSERVER_ENV_FILE=<file> uses that file instead of .env, e.g. the public
+web flasher builds: PRINTSERVER_ENV_FILE=.env.public pio run (no WiFi
+credentials).
+
 Format: KEY=VALUE per line, '#' comments, optional quotes around VALUE.
 Every key becomes `#define KEY "VALUE"`.
 """
@@ -19,7 +23,7 @@ except NameError:
     ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 EXAMPLE_FILE = os.path.join(ROOT, ".env.example")
-LOCAL_FILE = os.path.join(ROOT, ".env")
+LOCAL_FILE = os.path.join(ROOT, os.environ.get("PRINTSERVER_ENV_FILE") or ".env")
 OUT_FILE = os.path.join(ROOT, "src", "local_config.h")
 
 KEY_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
@@ -61,6 +65,8 @@ def c_string(s):
 
 def main():
     if not os.path.exists(LOCAL_FILE):
+        if os.environ.get("PRINTSERVER_ENV_FILE"):
+            raise SystemExit("PRINTSERVER_ENV_FILE: %s not found" % LOCAL_FILE)
         shutil.copyfile(EXAMPLE_FILE, LOCAL_FILE)
         print("Created .env from .env.example: put your WiFi credentials in it")
 

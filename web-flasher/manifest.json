@@ -1,15 +1,27 @@
 {
-  "name": "AirPrint TS207 (ESP32-S3)",
-  "version": "0.2.0",
+  "name": "AirPrint TS207 - Lily Touch",
+  "version": "0.3.0",
   "new_install_prompt_erase": true,
   "builds": [
     {
       "chipFamily": "ESP32-S3",
       "parts": [
-        { "path": "firmware/bootloader.bin", "offset": 0 },
-        { "path": "firmware/partitions.bin", "offset": 32768 },
-        { "path": "firmware/ota_data_initial.bin", "offset": 61440 },
-        { "path": "firmware/firmware.bin", "offset": 131072 }
+        {
+          "path": "firmware/lily/bootloader.bin",
+          "offset": 0
+        },
+        {
+          "path": "firmware/lily/partitions.bin",
+          "offset": 32768
+        },
+        {
+          "path": "firmware/lily/ota_data_initial.bin",
+          "offset": 61440
+        },
+        {
+          "path": "firmware/lily/firmware.bin",
+          "offset": 131072
+        }
       ]
     }
   ]

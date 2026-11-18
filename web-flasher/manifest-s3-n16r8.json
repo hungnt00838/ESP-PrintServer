@@ -1,0 +1,28 @@
+{
+  "name": "AirPrint TS207 - ESP32-S3 N16R8",
+  "version": "0.3.0",
+  "new_install_prompt_erase": true,
+  "builds": [
+    {
+      "chipFamily": "ESP32-S3",
+      "parts": [
+        {
+          "path": "firmware/s3-n16r8/bootloader.bin",
+          "offset": 0
+        },
+        {
+          "path": "firmware/s3-n16r8/partitions.bin",
+          "offset": 32768
+        },
+        {
+          "path": "firmware/s3-n16r8/ota_data_initial.bin",
+          "offset": 61440
+        },
+        {
+          "path": "firmware/s3-n16r8/firmware.bin",
+          "offset": 131072
+        }
+      ]
+    }
+  ]
+}
