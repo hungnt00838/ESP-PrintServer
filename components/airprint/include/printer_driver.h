@@ -47,6 +47,7 @@ typedef struct printer_driver {
     uint16_t usb_vid, usb_pid;  // the device's USB ids, 0 = unknown (matched by usb_mdl)
     bool color;                 // colour printing (else gray only)
     bool scanner;               // the device has a Canon pixma scanner (components/scanner)
+    bool no_replies;            // never answers the job handshake: io->sync only flushes, no waiting
     int resolutions[PRINTER_MAX_RESOLUTIONS];   // dpi, ascending; the last is the default
     int nresolutions;
     const printer_paper_t *papers;              // the first is the default

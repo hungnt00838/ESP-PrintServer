@@ -269,11 +269,16 @@ typedef struct {
     char ssid[33], pass[65];
 } creds_t;
 
-// after the reply has gone out: the station's channel change drops the phone
+// after the reply has gone out: the station's channel change drops the phone.
+// Saving happens here too: the HTTP connection threads have their stacks in
+// PSRAM, and flash writes (NVS) are not allowed from those.
 static void switch_task(void *arg)
 {
     creds_t *c = arg;
     vTaskDelay(pdMS_TO_TICKS(1500));
+    esp_err_t err = save(c->ssid, c->pass);
+    if (err != ESP_OK)
+        ESP_LOGE(TAG, "network not saved: %s (used until restart)", esp_err_to_name(err));
     wifi_use_network(c->ssid, c->pass);
     free(c);
     vTaskDelete(NULL);
@@ -304,26 +309,23 @@ static void page_save(airprint_http_t *h, page_t *p)
         send_page(h, p);
         return;
     }
-    esp_err_t err = save(c->ssid, c->pass);
     char esc[200], msg[700];
     html_escape(esc, sizeof(esc), c->ssid);
-    if (err == ESP_OK)
+    // saved by switch_task (flash writes need an internal-RAM stack)
+    bool started = xTaskCreate(switch_task, "wifi_switch", 3072, c, 5, NULL) == pdPASS;
+    if (started)
         snprintf(msg, sizeof(msg),
                  "<h1>Đã lưu</h1><p>Máy in đang kết nối vào <b>%s</b>. Màn hình máy in sẽ hiện địa chỉ IP khi xong.</p>"
                  "<p>Hãy chuyển điện thoại về Wi-Fi nhà bạn. Nếu sai mật khẩu, Wi-Fi cài đặt <b>%s</b> sẽ mở lại.</p>",
                  esc, s_ap_name);
     else
-        snprintf(msg, sizeof(msg), "<h1>Lỗi</h1><p>Không lưu được (%s).</p><p><a href=/>Thử lại</a></p>",
-                 esp_err_to_name(err));
+        snprintf(msg, sizeof(msg), "<h1>Lỗi</h1><p>Không đủ bộ nhớ.</p><p><a href=/>Thử lại</a></p>");
     put(p, msg);
     send_page(h, p);
-    if (err == ESP_OK) {
-        ESP_LOGI(TAG, "saved a network, switching to it");
-        if (xTaskCreate(switch_task, "wifi_switch", 3072, c, 5, NULL) != pdPASS)
-            free(c);
-    } else {
+    if (started)
+        ESP_LOGI(TAG, "saving a network, switching to it");
+    else
         free(c);
-    }
 }
 
 bool wifi_setup_http(airprint_http_t *h, const char *method, const char *path)

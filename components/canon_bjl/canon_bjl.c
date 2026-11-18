@@ -18,6 +18,14 @@ static const char XML_MODE_SHIFT[] =
     "<ivec:param_set servicetype=\"print\"><vcn:ijoperation>ModeShift</vcn:ijoperation><vcn:ijmode>1</vcn:ijmode>"
     "<ivec:jobID>00000001</ivec:jobID></ivec:param_set></ivec:contents></cmd>";
 
+// TS200 series (IVEC type 7): sent by Canon's driver between StartJob and
+// ModeShift. The date only labels the job; a fixed one keeps streams reproducible.
+static const char XML_SET_JOB_CONFIG[] =
+    "<?xml version=\"1.0\" encoding=\"utf-8\" ?><cmd xmlns:ivec=\"http://www.canon.com/ns/cmd/2008/07/common/\">"
+    "<ivec:contents><ivec:operation>SetJobConfiguration</ivec:operation><ivec:param_set servicetype=\"print\">"
+    "<ivec:jobID>00000001</ivec:jobID><ivec:datetime>20260101000000</ivec:datetime>"
+    "<ivec:mismatch_mode>none</ivec:mismatch_mode></ivec:param_set></ivec:contents></cmd>";
+
 static const char XML_END_JOB[] =
     "<?xml version=\"1.0\" encoding=\"utf-8\" ?><cmd xmlns:ivec=\"http://www.canon.com/ns/cmd/2008/07/common/\">"
     "<ivec:contents><ivec:operation>EndJob</ivec:operation><ivec:param_set servicetype=\"print\">"
@@ -33,6 +41,8 @@ static const bjl_model_t MODELS[BJL_MODEL_COUNT] = {
     [BJL_MODEL_E3100] = {"E3100", 9, 0xff, 2, 1, 1, NULL},
     [BJL_MODEL_MP230] = {"MP230", 9, 0x00, 3, 0, 0, NULL},
     [BJL_MODEL_IP2700] = {"iP2700", 6, 0x00, 3, 0, 0, "SetSilent=OFF"},
+    // not from Gutenprint: captured from Canon's TS200 series driver (print to file)
+    [BJL_MODEL_TS200] = {"TS200", 9, 0xff, 2, 1, 1, NULL, 1},
 };
 
 // Gutenprint canon_PIXMA_MG2400_modes, the same for every model above:
@@ -280,7 +290,80 @@ int bjl_emit_start_job(bjl_job_t *j)
 
 int bjl_emit_mode_shift(bjl_job_t *j)
 {
+    if (j->model->ivec_type7)
+        emit(j, XML_SET_JOB_CONFIG, sizeof(XML_SET_JOB_CONFIG) - 1);
     return emit(j, XML_MODE_SHIFT, sizeof(XML_MODE_SHIFT) - 1);
+}
+
+// ESC (p: page geometry, 46 bytes, big endian
+static void emit_page_geometry(bjl_job_t *j)
+{
+    const bjl_paper_t *pp = j->paper;
+    uint8_t b[46];
+    memset(b, 0, sizeof(b));
+    put_be16(b + 0, (area_h_pt(pp) + 1) * 5 / 6);  // printable length
+    put_be16(b + 4, (area_w_pt(pp) + 1) * 5 / 6);  // printable width
+    put_be16(b + 12, 600);                          // unit
+    put_be32(b + 14, BJL_BORDER_LEFT_PT * 600 / 72);   // area left
+    put_be32(b + 18, BJL_BORDER_TOP_PT * 600 / 72);    // area top
+    put_be32(b + 22, area_w_pt(pp) * 600 / 72);    // area width
+    put_be32(b + 26, area_h_pt(pp) * 600 / 72);    // area length
+    put_be32(b + 38, pp->w_600);                    // paper width
+    put_be32(b + 42, pp->h_600);                    // paper length
+    emit_cmd(j, 'p', b, sizeof(b));
+}
+
+// The TS200 series page setup, in the order Canon's driver sends it:
+// [K (T (b (c (d (t (p (P (l (v (w (q (y (b (I (J (L
+static int page_begin_type7(bjl_job_t *j, int first)
+{
+    const bjl_mode_t *m = j->mode;
+    const bjl_paper_t *pp = j->paper;
+    uint8_t b[24];
+    static const uint8_t reset[] = {0x1b, '[', 'K', 0x02, 0x00, 0x00, 0x0f};
+    if (first)
+        emit(j, reset, sizeof(reset));
+    static const uint8_t escT[] = {0x03, 0x04, 0x04};   // cartridges: black + colour
+    emit_cmd(j, 'T', escT, sizeof(escT));
+    b[0] = 0x01;                                    // data compression on
+    emit_cmd(j, 'b', b, 1);
+    b[0] = 0x30;                                    // colour
+    b[1] = BJL_MEDIA_PLAIN;
+    b[2] = m->quality;
+    emit_cmd(j, 'c', b, 3);
+    put_be16(b, m->dpi);
+    put_be16(b + 2, m->dpi);
+    emit_cmd(j, 'd', b, 4);
+    // ESC (t: 3 header bytes, then {bits, 0, levels} for K, C, M, Y and 3 empty slots
+    static const int order[BJL_NUM_CHANNELS] = {BJL_K, BJL_C, BJL_M, BJL_Y};
+    memset(b, 0, 24);
+    memcpy(b, m->t_head, 3);
+    for (int i = 0; i < BJL_NUM_CHANNELS; i++) {
+        b[3 + i * 3] = m->bits[order[i]];
+        b[3 + i * 3 + 2] = m->levels[order[i]];
+    }
+    emit_cmd(j, 't', b, 24);
+    emit_page_geometry(j);
+    const uint8_t escP[] = {0x00, pp->size_code, 0x00, BJL_MEDIA_PLAIN, 0x01, 0x00, 0x01, 0x00, 0xff};
+    emit_cmd(j, 'P', escP, sizeof(escP));
+    static const uint8_t escl[] = {0x34, 0x00};     // rear tray, plain media
+    emit_cmd(j, 'l', escl, sizeof(escl));
+    b[0] = 0x00;
+    emit_cmd(j, 'v', b, 1);                         // no page rotation
+    if (first)
+        emit_cmd(j, 'w', b, 1);
+    b[0] = 0x01;                                    // page id
+    emit_cmd(j, 'q', b, 1);
+    static const uint8_t escy[] = {0x00, 0x00, 0x00, 0x01};
+    emit_cmd(j, 'y', escy, sizeof(escy));
+    b[0] = 0x01;
+    emit_cmd(j, 'b', b, 1);
+    b[0] = 0x01;                                    // multiraster mode
+    emit_cmd(j, 'I', b, 1);
+    b[0] = BJL_LINES_PER_BLOCK;
+    emit_cmd(j, 'J', b, 1);
+    emit_cmd(j, 'L', (const uint8_t *)"CMYK", 4);
+    return j->err;
 }
 
 int bjl_page_begin(bjl_job_t *j)
@@ -290,6 +373,16 @@ int bjl_page_begin(bjl_job_t *j)
     const bjl_paper_t *pp = j->paper;
     uint8_t b[64];
     int first = j->pages++ == 0;
+
+    if (model->ivec_type7) {
+        page_begin_type7(j, first);
+        j->lines_in_block = 0;
+        j->lines_done = 0;
+        j->in_page = 1;
+        for (int c = 0; c < BJL_NUM_CHANNELS; c++)
+            j->block_len[c] = 0;
+        return j->err;
+    }
 
     if (first && model->control) {
         // ESC [K 00 1f, then a BJL control block (print-canon.c canon_control_cmd)
@@ -329,18 +422,7 @@ int bjl_page_begin(bjl_job_t *j)
     b[2] = m->quality;
     emit_cmd(j, 'c', b, 3);
 
-    // ESC (p: page geometry, 46 bytes, big endian
-    memset(b, 0, 46);
-    put_be16(b + 0, (area_h_pt(pp) + 1) * 5 / 6);  // printable length
-    put_be16(b + 4, (area_w_pt(pp) + 1) * 5 / 6);  // printable width
-    put_be16(b + 12, 600);                          // unit
-    put_be32(b + 14, BJL_BORDER_LEFT_PT * 600 / 72);   // area left
-    put_be32(b + 18, BJL_BORDER_TOP_PT * 600 / 72);    // area top
-    put_be32(b + 22, area_w_pt(pp) * 600 / 72);    // area width
-    put_be32(b + 26, area_h_pt(pp) * 600 / 72);    // area length
-    put_be32(b + 38, pp->w_600);                    // paper width
-    put_be32(b + 42, pp->h_600);                    // paper length
-    emit_cmd(j, 'p', b, 46);
+    emit_page_geometry(j);
 
     // ESC (P: 00 size 00 media orientation(1,0) [01 00 tray]
     const uint8_t escP[] = {0x00, pp->size_code, 0x00, BJL_MEDIA_PLAIN, 0x01, 0x00, 0x01, 0x00, model->esc_P_last};
@@ -421,6 +503,10 @@ int bjl_page_end(bjl_job_t *j)
         bjl_page_add_line(j, NULL);
     if (j->lines_in_block)
         flush_block(j);
+    if (j->model->ivec_type7) {
+        static const uint8_t adv[] = {0x00, 0x01};  // ESC (e 1, as Canon's driver before the eject
+        emit_cmd(j, 'e', adv, sizeof(adv));
+    }
     static const uint8_t ff = 0x0c;                 // eject page
     emit(j, &ff, 1);
     uint8_t off = 0x00;                             // data compression off

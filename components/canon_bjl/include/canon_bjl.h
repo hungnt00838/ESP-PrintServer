@@ -62,6 +62,7 @@ typedef enum {
     BJL_MODEL_E3100,        // E3100 / TS3100
     BJL_MODEL_MP230,        // MP230
     BJL_MODEL_IP2700,       // iP2700, MP250, MP270, MP280, MP490, MP493, MP495, MX340, MX350, MX360, MX410, MX420
+    BJL_MODEL_TS200,        // TS200 series (TS207): IEEE 1284 CID CA_IVEC1TYPE7_IJP, from Canon's own driver
     BJL_MODEL_COUNT,
 } bjl_model_id_t;
 
@@ -73,6 +74,11 @@ typedef struct {
     uint8_t esc_v;                         // sends ESC (v (page rotation)
     uint8_t esc_w;                         // sends ESC (w on the first page
     const char *control;                   // BJL control command before the first reset ("SetSilent=OFF"), or NULL
+    // IVEC "type 7" stream (TS200 series), as Canon's Windows driver 1.02 sends
+    // it: SetJobConfiguration after StartJob, Canon's page setup order, a
+    // 24-byte ESC (t with the inks as K, C, M, Y, ESC (y; both modes as Canon's
+    // "Standard" (600 dpi) and "Fast" (300 dpi)
+    uint8_t ivec_type7;
 } bjl_model_t;
 
 typedef enum {

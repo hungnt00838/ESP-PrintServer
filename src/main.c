@@ -40,6 +40,7 @@
 static const char *TAG = "main";
 
 #define LONG_PRESS_MS 2000
+#define NET_RESET_PRESS_MS 10000    // hold this long: static IP off (DHCP) and restart
 #define DOUBLE_PRESS_MS 400     // a second press within this is a double press
 #define ERROR_SHOW_MS 3000
 
@@ -183,6 +184,7 @@ static void button_task(void *arg)
     int same = 0;
     TickType_t pressed_at = 0, released_at = 0;
     bool long_fired = false;
+    bool net_reset_fired = false;
     bool pending = false;       // a press waiting to see whether a second one follows
     bool waking = false;        // this press turned the screen on: it does nothing else
     // the user button
@@ -194,6 +196,7 @@ static void button_task(void *arg)
             if (down) {
                 pressed_at = xTaskGetTickCount();
                 long_fired = false;
+                net_reset_fired = false;
                 waking = oled_wake();
                 if (waking)
                     pending = false;
@@ -217,6 +220,18 @@ static void button_task(void *arg)
                 ESP_LOGW(TAG, "cancel requested");
                 usb_printer_cancel();
                 scan_service_cancel();
+            }
+        }
+        // a static IP that cannot be reached has no web page to undo it: the button does
+        if (down && !net_reset_fired && xTaskGetTickCount() - pressed_at >= pdMS_TO_TICKS(NET_RESET_PRESS_MS)) {
+            net_reset_fired = true;
+            wifi_ipv4_t st;
+            if (wifi_static_get(&st)) {
+                ESP_LOGW(TAG, "button held %d s: static IP off, back to DHCP, restarting", NET_RESET_PRESS_MS / 1000);
+                status_led_set(LED_ERROR);
+                wifi_static_set(NULL);
+                vTaskDelay(pdMS_TO_TICKS(500));
+                esp_restart();
             }
         }
 

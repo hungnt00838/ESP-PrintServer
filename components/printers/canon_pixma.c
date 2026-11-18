@@ -222,12 +222,16 @@ static const printer_paper_t PAPERS[] = {
 
 static const bjl_model_id_t MODELS[BJL_MODEL_COUNT] = {
     BJL_MODEL_MG2400, BJL_MODEL_MG2900, BJL_MODEL_IP2800, BJL_MODEL_E3100, BJL_MODEL_MP230, BJL_MODEL_IP2700,
+    BJL_MODEL_TS200,
 };
 
 // mdl: the IEEE 1284 MDL; pid: the USB product id (from SANE's pixma
 // backend), 0 when unknown (matched by mdl); scanner: a pixma flatbed that
 // works like the MG2500's up to 600 dpi (SANE generation 4 or 5).
 #define CANON_PIXMA(var, id_, mdl, pid, bjl_model, has_scanner)                                                       \
+    CANON_PIXMA_RES(var, id_, mdl, pid, bjl_model, has_scanner, false, 2, 300, 600)
+// silent: answers no IVEC request but GetStatus; nres resolutions after it, the last one is the default
+#define CANON_PIXMA_RES(var, id_, mdl, pid, bjl_model, has_scanner, silent, nres, ...)                                \
     const printer_driver_t var = {                                                                                     \
         .id = id_,                                                                                                     \
         .make_model = "Canon " mdl,                                                                                    \
@@ -237,8 +241,9 @@ static const bjl_model_id_t MODELS[BJL_MODEL_COUNT] = {
         .usb_pid = pid,                                                                                                \
         .color = true,                                                                                                 \
         .scanner = has_scanner,                                                                                        \
-        .resolutions = {300, 600},                                                                                     \
-        .nresolutions = 2,                                                                                             \
+        .no_replies = silent,                                                                                          \
+        .resolutions = {__VA_ARGS__},                                                                                  \
+        .nresolutions = nres,                                                                                          \
         .papers = PAPERS,                                                                                              \
         .npapers = 2,                                                                                                  \
         .margin_left = 353,                                                                                            \
@@ -266,8 +271,11 @@ CANON_PIXMA(canon_mg3000_driver, "canon-mg3000", "MG3000 series", 0x180b, BJL_MO
 CANON_PIXMA(canon_e470_driver, "canon-e470", "E470 series", 0x180c, BJL_MODEL_MG2900, true);
 CANON_PIXMA(canon_e460_driver, "canon-e460", "E460 series", 0x1788, BJL_MODEL_MG2900, true);
 CANON_PIXMA(canon_ip2800_driver, "canon-ip2800", "iP2800 series", 0, BJL_MODEL_IP2800, false);
-// TS200 series (TS207): iP2800 successor, same PG-745/CL-746 cartridges; untested
-CANON_PIXMA(canon_ts200_driver, "canon-ts200", "TS200 series", 0, BJL_MODEL_IP2800, false);
+// TS200 series (TS207, 04a9:182b, IEEE 1284 "CMD:BJRaster3,IVEC;CID:CA_IVEC1TYPE7_IJP"): its own
+// stream variant, taken from Canon's Windows driver 1.02 (plain paper: "Standard" is our 600 dpi mode,
+// "Fast" is our 300 dpi mode, byte for byte in ESC (c, (d and (t). It ignores the iP2800 stream and
+// answers no IVEC request (GetStatus only), so the handshake is not waited for.
+CANON_PIXMA_RES(canon_ts200_driver, "canon-ts200", "TS200 series", 0x182b, BJL_MODEL_TS200, false, true, 2, 300, 600);
 CANON_PIXMA(canon_e3100_driver, "canon-e3100", "E3100 series", 0x1828, BJL_MODEL_E3100, true);
 CANON_PIXMA(canon_ts3100_driver, "canon-ts3100", "TS3100 series", 0x1827, BJL_MODEL_E3100, true);
 CANON_PIXMA(canon_mp230_driver, "canon-mp230", "MP230 series", 0x175f, BJL_MODEL_MP230, true);

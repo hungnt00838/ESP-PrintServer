@@ -28,7 +28,9 @@
 #include "raster.h"
 
 #ifdef ESP_PLATFORM
+#include "esp_heap_caps.h"
 #include "esp_log.h"
+#include "esp_pthread.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #define LOGI(...) ESP_LOGI("airprint", __VA_ARGS__)
@@ -1597,6 +1599,20 @@ static void *listen_thread(void *arg)
         return NULL;
     }
     LOGI("%s server listening on port %d", port == s_cfg->port ? "IPP" : "web", port);
+#ifdef ESP_PLATFORM
+    // Connection threads (12 KB stacks) get their stacks from PSRAM. During a
+    // 600 dpi job iOS opens several more connections to watch it, and internal
+    // RAM ran out: "pthread: Failed to create task!", the connection was
+    // closed and the phone called the printer unavailable. esp_pthread_set_cfg
+    // applies to the threads this (listening) thread creates.
+    esp_pthread_cfg_t pcfg = esp_pthread_get_default_config();
+    if (heap_caps_get_total_size(MALLOC_CAP_SPIRAM) > 0) {
+        pcfg.stack_alloc_caps = MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT;
+        pcfg.stack_size = CONN_STACK_SIZE;
+        if (esp_pthread_set_cfg(&pcfg) != ESP_OK)
+            LOGW("connection threads: cannot use PSRAM stacks");
+    }
+#endif
     for (;;) {
         int fd = accept(ls, NULL, NULL);
         if (fd < 0)
@@ -1625,6 +1641,7 @@ static void *listen_thread(void *arg)
         pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
         pthread_t th;
         if (pthread_create(&th, &attr, conn_thread, c) != 0) {
+            LOGW("no memory for a connection thread, refusing one");
             close(fd);
             free(c);
             pthread_mutex_lock(&s_lock);

@@ -5,6 +5,7 @@
 
 #include <stdbool.h>
 #include <stddef.h>
+#include <stdint.h>
 
 #include "esp_err.h"
 
@@ -17,3 +18,21 @@ bool wifi_configured(void);
 bool wifi_get_ip(char *buf, size_t n);
 // Signal of the access point in dBm, 0 when unknown.
 int wifi_rssi(void);
+
+// IPv4 settings, each address in network byte order (esp_ip4_addr_t.addr).
+// ip == 0 means DHCP.
+typedef struct {
+    uint32_t ip, mask, gw, dns;
+} wifi_ipv4_t;
+
+// The static address saved on the board (false = DHCP).
+bool wifi_static_get(wifi_ipv4_t *out);
+// A usable static address: contiguous mask, gateway another host of the subnet.
+bool wifi_static_valid(const wifi_ipv4_t *cfg);
+// Saves a static address (NULL or ip == 0: back to DHCP). Checked first:
+// ESP_ERR_INVALID_ARG for a bad mask, or a gateway outside the subnet.
+// Takes effect at the next restart. Writes flash: not from a task whose
+// stack is in PSRAM (the HTTP connection threads).
+esp_err_t wifi_static_set(const wifi_ipv4_t *cfg);
+// What the station uses now (DHCP lease or static); false while not connected.
+bool wifi_current_ipv4(wifi_ipv4_t *out);

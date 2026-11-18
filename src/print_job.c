@@ -70,6 +70,8 @@ int print_job_sync(const char *what)
     static bool s_start_answered;
     if (usb_printer_flush() != ESP_OK)
         return -1;
+    if (print_job_driver()->no_replies)
+        return 0;       // e.g. the TS200 series: waiting would only add 5 s per step
     bool end = strcmp(what, "EndJob") == 0;
     uint32_t timeout = !end ? 5000 : s_start_answered ? 180000 : 5000;
     esp_err_t err = usb_printer_wait_response(what, timeout);
