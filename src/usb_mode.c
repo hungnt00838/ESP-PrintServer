@@ -11,8 +11,11 @@
 
 static const char *TAG = "usb_mode";
 
-#define BTN_A 39                // volume down
-#define BTN_B 40                // volume up
+#include "sdkconfig.h"
+
+// Lily Touch: volume down / volume up; -1 on boards without them
+#define BTN_A CONFIG_USB_MODE_BUTTON_A_GPIO
+#define BTN_B CONFIG_USB_MODE_BUTTON_B_GPIO
 #define HOLD_MS 2000
 #define FLASH_MAGIC 0x464c5348u // "FLSH"
 
@@ -22,7 +25,7 @@ static bool s_flash;
 
 static bool pressed(void)
 {
-    return gpio_get_level(BTN_A) == 0 || gpio_get_level(BTN_B) == 0;
+    return (BTN_A >= 0 && gpio_get_level(BTN_A) == 0) || (BTN_B >= 0 && gpio_get_level(BTN_B) == 0);
 }
 
 static void button_task(void *arg)
@@ -43,8 +46,11 @@ void usb_mode_init(void)
 {
     s_flash = esp_reset_reason() == ESP_RST_SW && s_request == FLASH_MAGIC;
     s_request = 0;
+    uint64_t mask = (BTN_A >= 0 ? 1ULL << BTN_A : 0) | (BTN_B >= 0 ? 1ULL << BTN_B : 0);
+    if (!mask)
+        return; // no switch buttons: always print mode
     gpio_config_t in = {
-        .pin_bit_mask = (1ULL << BTN_A) | (1ULL << BTN_B),
+        .pin_bit_mask = mask,
         .mode = GPIO_MODE_INPUT,
         .pull_up_en = GPIO_PULLUP_ENABLE,
     };

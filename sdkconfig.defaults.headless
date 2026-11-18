@@ -1,0 +1,12 @@
+# ESP32-S3 N16R8 dev board without a screen (YD-ESP32-S3 N16R8, ESP32-S3-CAM
+# N16R8, ESP32-S3-DevKitC-1 N16R8). Two USB-C ports:
+#   "USB"/"OTG": the chip's own USB, becomes the printer's host
+#   "COM"/"TTL": USB-UART chip (CH343/CP2102) on UART0, for flashing and the log
+# BOOT (GPIO0): press = scan, twice = test page. RGB LED (WS2812) on GPIO48.
+CONFIG_PRINT_BUTTON2_GPIO=-1
+CONFIG_USER_BUTTON_GPIO=-1
+CONFIG_LCD_NV3023=n
+# flashed over the COM/TTL port: a short window is enough
+CONFIG_USB_HOST_DELAY_S=3
+CONFIG_USB_MODE_BUTTON_A_GPIO=-1
+CONFIG_USB_MODE_BUTTON_B_GPIO=-1

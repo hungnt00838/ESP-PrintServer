@@ -9,6 +9,21 @@ Bản fork của [ngxson/esp32-usb-to-airprint](https://github.com/ngxson/esp32-
 - Nút cảm ứng **NAP FW / CHE DO IN**: giữ cổng USB ở chế độ nạp, hoặc chuyển về chế độ cắm máy in.
 - Trang **nạp firmware trên trình duyệt** trong `web-flasher/` (ESP Web Tools), triển khai được lên Vercel.
 
+### Mạch ESP32-S3 N16R8 không màn hình (`pio run -e s3_n16r8`)
+
+Dùng cho YD-ESP32-S3 N16R8, ESP32-S3-CAM N16R8, ESP32-S3-DevKitC-1 N16R8 (2 cổng USB-C).
+
+- Cổng **COM / TTL** (chip USB-UART): nạp firmware và xem log. Firmware không bao giờ chiếm cổng này.
+  Nạp: `pio run -e s3_n16r8 -t upload --upload-port COMx`.
+- Cổng **USB / OTG** (USB của chip): cắm máy in. Sau 3 giây kể từ lúc khởi động, cổng này thành USB Host.
+- **Máy in cần 5V trên cổng này.** Trên YD-ESP32-S3, nối cầu hàn **USB-OTG** ở mặt sau. Nếu mạch không có cầu hàn đó, dùng cáp chữ Y hoặc đầu OTG có cổng sạc.
+- Nút **BOOT**: nhấn 1 lần để scan, 2 lần để in trang thử. Đèn RGB (GPIO48) báo trạng thái.
+- Cài Wi-Fi: mạch phát Wi-Fi mở `<HOSTNAME>-Setup`. Kết nối vào rồi mở http://192.168.4.1/.
+- Trang **http://canon-ts207.local/firmware** (link "Firmware" ở cuối menu) dùng cho cả hai mạch:
+  - Chuyển cổng USB sang **chế độ nạp** hoặc về chế độ in.
+  - Khi build với `MODE=debug`: tải `firmware.bin` lên qua Wi-Fi để cài.
+- Cấu hình riêng của mạch nằm ở `sdkconfig.defaults.headless`; của Lily ở `sdkconfig.defaults.lily`.
+
 ---
 
 # Add AirPrint / AirScan support to your old printer, using just a cheap ESP32-S3

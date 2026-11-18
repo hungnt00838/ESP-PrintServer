@@ -13,6 +13,7 @@
 #include "esp_timer.h"
 #include "events.h"
 #include "fake_scanner.h"
+#include "fw_page.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/semphr.h"
 #include "freertos/task.h"
@@ -229,7 +230,8 @@ static bool web_http(airprint_http_t *h, const char *method, const char *path)
 {
     if (wifi_setup_http(h, method, path))     // the WiFi setup portal, while it is open
         return true;
-    return scan_service_http(h, method, path) || events_http(h, method, path) || webui_http(h, method, path);
+    return fw_page_http(h, method, path) || scan_service_http(h, method, path) || events_http(h, method, path) ||
+           webui_http(h, method, path);
 }
 
 static bool dev_http(void *ctx, airprint_http_t *h, const char *method, const char *path)

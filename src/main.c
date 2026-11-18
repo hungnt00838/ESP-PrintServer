@@ -239,7 +239,7 @@ static bool healthy(void)
     return wifi_connected() && (strcmp(MODE, "debug") != 0 || s_debug_server_up);
 }
 
-#define USB_HOST_DELAY_S 15
+#define USB_HOST_DELAY_S CONFIG_USB_HOST_DELAY_S
 
 static void usb_start_task(void *arg)
 {
@@ -248,8 +248,10 @@ static void usb_start_task(void *arg)
         vTaskDelete(NULL);
         return;
     }
-    ESP_LOGW(TAG, "USB port: reflash window, the printer host starts in %d s", USB_HOST_DELAY_S);
-    vTaskDelay(pdMS_TO_TICKS(USB_HOST_DELAY_S * 1000));
+    if (USB_HOST_DELAY_S > 0) {
+        ESP_LOGW(TAG, "USB port: reflash window, the printer host starts in %d s", USB_HOST_DELAY_S);
+        vTaskDelay(pdMS_TO_TICKS(USB_HOST_DELAY_S * 1000));
+    }
     ESP_LOGW(TAG, "USB port: starting the printer host (USB log ends here)");
     ESP_ERROR_CHECK(usb_printer_start(on_printer));
     vTaskDelete(NULL);

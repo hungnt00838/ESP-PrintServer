@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <strings.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <unistd.h>
@@ -440,8 +441,38 @@ static const char *check_image(const uint8_t *p, size_t n)
     return NULL;
 }
 
+// The firmware page (port 80, fw_page.c) uploads to /ota here (port 8080):
+// a cross-origin request, allowed only from a page on this same board
+// (Origin host == Host header host, any port). origin must live until the
+// response is sent.
+static void allow_same_host(httpd_req_t *req, char *origin, size_t n)
+{
+    char host[96];
+    if (httpd_req_get_hdr_value_str(req, "Origin", origin, n) != ESP_OK ||
+        httpd_req_get_hdr_value_str(req, "Host", host, sizeof(host)) != ESP_OK)
+        return;
+    const char *o = strncmp(origin, "http://", 7) == 0 ? origin + 7 : NULL;
+    if (!o)
+        return;
+    size_t ol = strcspn(o, ":/"), hl = strcspn(host, ":");
+    if (ol == hl && ol > 0 && strncasecmp(o, host, ol) == 0)
+        httpd_resp_set_hdr(req, "Access-Control-Allow-Origin", origin);
+}
+
+static esp_err_t ota_options(httpd_req_t *req)
+{
+    char origin[96];
+    allow_same_host(req, origin, sizeof(origin));
+    httpd_resp_set_hdr(req, "Access-Control-Allow-Methods", "POST");
+    httpd_resp_set_hdr(req, "Access-Control-Allow-Headers", "Content-Type");
+    httpd_resp_set_status(req, "204 No Content");
+    return httpd_resp_send(req, NULL, 0);
+}
+
 static esp_err_t ota_post(httpd_req_t *req)
 {
+    char origin[96];
+    allow_same_host(req, origin, sizeof(origin));
     if (s_busy && s_busy())
         return send_text(req, "409 Conflict", "busy printing or scanning, try again later\n");
     const esp_partition_t *part = esp_ota_get_next_update_partition(NULL);
@@ -640,6 +671,7 @@ esp_err_t debug_server_start(bool (*busy)(void))
         {.uri = "/info", .method = HTTP_GET, .handler = info_get},
         {.uri = "/log", .method = HTTP_GET, .handler = log_get},
         {.uri = "/ota", .method = HTTP_POST, .handler = ota_post},
+        {.uri = "/ota", .method = HTTP_OPTIONS, .handler = ota_options},
         {.uri = "/reboot", .method = HTTP_POST, .handler = reboot_post},
         {.uri = "/coredump", .method = HTTP_GET, .handler = coredump_get},
         {.uri = "/coredump/erase", .method = HTTP_POST, .handler = coredump_erase_post},

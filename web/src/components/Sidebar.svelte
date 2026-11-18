@@ -91,6 +91,7 @@
   </ul>
 
   <div class="foot">
+    <a class="fw" href="/firmware">Firmware</a>
     <span class="pill {tone}">
       <span class="dot"></span>
       {device.online ? (tone === 'busy' ? 'Working' : tone === 'warn' ? 'No printer' : 'Online') : 'Reconnecting…'}
@@ -99,6 +100,17 @@
 </nav>
 
 <style>
+  .fw {
+    display: block;
+    padding: 6px 10px;
+    margin-bottom: 8px;
+    font-size: 13px;
+    color: var(--muted, inherit);
+    text-decoration: none;
+  }
+  .fw:hover {
+    text-decoration: underline;
+  }
   .sidebar {
     display: flex;
     flex-direction: column;

@@ -36,6 +36,9 @@
 #include "usb_mode.h"
 #include "wifi_setup.h"
 
+// boards without the screen (sdkconfig.defaults.headless) build an empty file
+#if CONFIG_LCD_NV3023
+
 static const char *TAG = "lcd";
 
 #define PIN_CLK 9
@@ -322,12 +325,6 @@ static bool touch_read(int *lx, int *ly)
         x = W - 1 - x;
     if (TOUCH_MIRROR_Y)
         y = H - 1 - y;
-    static int64_t last_log;
-    int64_t now = esp_timer_get_time();
-    if (now - last_log > 300000) {
-        ESP_LOGI(TAG, "touch raw %d,%d -> %d,%d", tx, ty, x, y);
-        last_log = now;
-    }
     *lx = x;
     *ly = y;
     return true;
@@ -607,3 +604,5 @@ void lcd_start(const char *hostname)
     else
         ESP_LOGI(TAG, "NV3023 %dx%d status screen", W, H);
 }
+
+#endif // CONFIG_LCD_NV3023

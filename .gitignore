@@ -5,6 +5,7 @@ managed_components/
 dependencies.lock
 # generated from sdkconfig.defaults + Kconfig on every build
 sdkconfig.esp32s3
+sdkconfig.s3_n16r8
 sdkconfig.qemu
 sdkconfig.old
 
@@ -36,3 +37,6 @@ tools/gutenprint_ref/build/
 __pycache__/
 *.pyc
 .DS_Store
+
+# local firmware packages (may hold the WiFi from .env)
+dist/

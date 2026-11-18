@@ -48,9 +48,6 @@ CONFIG_ESP_TASK_WDT_PANIC=y
 # task list on the debug server's /info
 CONFIG_FREERTOS_USE_TRACE_FACILITY=y
 CONFIG_FREERTOS_USE_STATS_FORMATTING_FUNCTIONS=y
-# Local: Canon PIXMA TS207 on a Lily Touch board (ESP32-S3 N16R8)
+# Local: Canon PIXMA TS207. The board-specific settings are in
+# sdkconfig.defaults.lily / sdkconfig.defaults.headless (platformio.ini)
 CONFIG_PRINTER_DRIVER="canon-ts200"
-CONFIG_PRINT_BUTTON2_GPIO=-1
-CONFIG_USER_BUTTON_GPIO=-1
-CONFIG_LCD_NV3023=y
-CONFIG_LCD_BATTERY_ADC_GPIO=17

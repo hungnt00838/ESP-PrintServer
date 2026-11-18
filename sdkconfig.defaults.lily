@@ -1,0 +1,11 @@
+# Lily Touch board (ostb-xiaozhi-3st, ESP32-S3R8 + 16 MB flash): NV3023 screen,
+# battery on GPIO17, volume buttons GPIO39/40 switch the USB port between
+# print and flash mode. Its only USB port is the printer's, so it stays
+# USB-Serial/JTAG for 15 s after boot (reflash window).
+CONFIG_PRINT_BUTTON2_GPIO=-1
+CONFIG_USER_BUTTON_GPIO=-1
+CONFIG_LCD_NV3023=y
+CONFIG_LCD_BATTERY_ADC_GPIO=17
+CONFIG_USB_HOST_DELAY_S=15
+CONFIG_USB_MODE_BUTTON_A_GPIO=39
+CONFIG_USB_MODE_BUTTON_B_GPIO=40

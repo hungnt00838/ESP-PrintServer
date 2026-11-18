@@ -74,6 +74,24 @@ menu "Printer server"
             OLED pixels that stay lit for months burn in. Any change on the
             screen or a press of the button turns it back on.
 
+    config USB_HOST_DELAY_S
+        int "Seconds the USB port stays USB-Serial/JTAG before it becomes the printer host"
+        range 0 120
+        default 15
+        help
+            The reflash window of a board whose only USB port is the one the
+            printer uses (Lily Touch). A board with a separate USB-UART port
+            (YD-ESP32-S3, ESP32-S3-CAM: "COM"/"TTL") is flashed there and
+            needs no window.
+
+    config USB_MODE_BUTTON_A_GPIO
+        int "Hold 2 s to switch USB print/flash mode: first button GPIO (-1 = none)"
+        default 39
+
+    config USB_MODE_BUTTON_B_GPIO
+        int "Hold 2 s to switch USB print/flash mode: second button GPIO (-1 = none)"
+        default 40
+
     config LCD_NV3023
         bool "NV3023 colour status screen (ostb-xiaozhi-3st / Lily Touch board)"
         default n
