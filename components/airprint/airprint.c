@@ -1424,7 +1424,13 @@ int airprint_status_json(void *ctx, char *buf, size_t n)
         STR(st.supply[i].name);
         PUT(",\"color\":");
         STR(st.supply[i].color);
-        PUT(",\"level\":%d}", st.supply[i].level);
+        PUT(",\"level\":%d", st.supply[i].level);
+        if (st.supply[i].cartridge[0]) {
+            PUT(",\"cartridge\":");
+            STR(st.supply[i].cartridge);
+            PUT(",\"pages\":%d", st.supply[i].pages);
+        }
+        PUT("}");
     }
     PUT("],\"active\":%d,\"jobs\":[", s_active ? s_active->id : 0);
     int listed = 0;

@@ -180,6 +180,41 @@ static int ink_level(const char *data, const char *key)
     return v > 100 ? 100 : v;
 }
 
+// "CART:CL=CL-746S,BK=PG-745S;" (usb_printer.c, from the TS200 series' <ivec:ink>) -> the cartridge
+static void cartridge(const char *data, const char *key, char *out, size_t n)
+{
+    out[0] = 0;
+    const char *cart = data ? strstr(data, "CART:") : NULL;
+    const char *p = cart ? strstr(cart, key) : NULL;
+    if (!p)
+        return;
+    p += strlen(key);
+    size_t len = strcspn(p, ",;");
+    if (len >= n)
+        len = n - 1;
+    memcpy(out, p, len);
+    out[len] = 0;
+}
+
+// Canon's rated yield (ISO/IEC 24711, A4 documents) of the cartridges seen so
+// far, 0 if unknown: PG-745/CL-746 family (TS200, iP2800, MG2500...):
+// "S" 100 pages, standard 180, "XL" 300 (Canon's TS207 specification page)
+static int rated_yield(const char *cart)
+{
+    if (strncmp(cart, "PG-745", 6) && strncmp(cart, "CL-746", 6))
+        return 0;
+    const char *suffix = cart + 6;
+    return !strcmp(suffix, "S") ? 100 : !strcmp(suffix, "XL") ? 300 : !*suffix ? 180 : 0;
+}
+
+static void set_cartridge(airprint_status_t *st, int i, const char *data, const char *key)
+{
+    cartridge(data, key, st->supply[i].cartridge, sizeof(st->supply[i].cartridge));
+    int y = rated_yield(st->supply[i].cartridge);
+    // the estimate needs a known level and yield; -1 otherwise
+    st->supply[i].pages = y && st->supply[i].level >= 0 ? (st->supply[i].level * y + 50) / 100 : -1;
+}
+
 static void status(const char *state, const char *detail, const char *data, airprint_status_t *st)
 {
     const char *d = detail ? detail : "";
@@ -209,6 +244,8 @@ static void status(const char *state, const char *detail, const char *data, airp
     st->supply[1].name = "Color";
     st->supply[1].color = "#00FFFF#FF00FF#FFFF00";
     st->supply[1].level = data ? ink_level(data, "CL=") : -2;
+    set_cartridge(st, 0, data, "BK=");
+    set_cartridge(st, 1, data, "CL=");
 }
 
 // ---------------------------------------------------------------------------

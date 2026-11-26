@@ -5,6 +5,8 @@ export interface Supply {
   name: string;
   color: string;
   level: number; // 0..100, < 0 unknown
+  cartridge?: string; // "PG-745S", when the printer names it
+  pages?: number; // estimated pages left (rated yield x level), < 0 unknown
 }
 
 export interface Job {

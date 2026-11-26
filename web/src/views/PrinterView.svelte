@@ -153,14 +153,25 @@
       <div class="inks">
         {#each p.supplies as s}
           <div class="ink">
-            <div class="row"><span class="grow">{s.name}</span><b>{s.level >= 0 ? s.level + '%' : 'unknown'}</b></div>
+            <div class="row">
+              <span class="grow">{s.name}{#if s.cartridge}<span class="muted"> · {s.cartridge}</span>{/if}</span>
+              <b>{s.level >= 0 ? s.level + '%' : 'unknown'}</b>
+            </div>
             <div class="bar">
               <div style:width={(s.level >= 0 ? s.level : 0) + '%'} style:background={inkColor(s)}></div>
             </div>
+            {#if s.pages !== undefined && s.pages >= 0}
+              <div class="muted small">{s.pages > 0 ? `about ${s.pages} pages left` : 'almost empty'}</div>
+            {/if}
           </div>
         {/each}
       </div>
-      <p class="muted small">Refilled cartridges report "unknown".</p>
+      <p class="muted small">
+        Refilled cartridges report "unknown".
+        {#if p.supplies.some((s) => s.pages !== undefined && s.pages >= 0)}
+          Pages left: the cartridge's rated yield (A4 text, ISO 24711) times its level; photos use much more ink.
+        {/if}
+      </p>
     {:else}
       <p class="muted">{p?.connected ? 'The printer has not reported its ink yet.' : 'No printer connected.'}</p>
     {/if}

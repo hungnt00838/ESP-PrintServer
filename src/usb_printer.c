@@ -10,6 +10,8 @@
 #include "usb_printer.h"
 
 #include <stdatomic.h>
+#include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 #include "esp_check.h"
@@ -88,6 +90,7 @@ typedef struct {
     char msg[MSG_BUF_SIZE];             // XML reply being reassembled (client task)
     size_t msg_len;
     char last_status[320];              // last logged status summary
+    bool raw_status_logged;             // the first GetStatusResponse of this printer was logged whole
     usb_printer_status_t status;        // parsed GetStatusResponse (under lock)
 } printer_t;
 
@@ -155,10 +158,47 @@ static void handle_reply(const char *msg)
     xml_value(msg, "<ivec:response>", resp, sizeof(resp));
     xml_value(msg, "<ivec:response_detail>", detail, sizeof(detail));
     if (strcmp(op, "GetStatusResponse") == 0) {
+        if (!s_p.raw_status_logged) {
+            // once per printer, the whole reply: what a new model reports
+            // (ink, paper, errors) and where, in 200-character lines
+            s_p.raw_status_logged = true;
+            size_t len = strlen(msg);
+            ESP_LOGI(TAG, "first status reply, %u bytes:", (unsigned)len);
+            for (size_t i = 0; i < len; i += 200)
+                ESP_LOGI(TAG, "  %.200s", msg + i);
+        }
         char status[24], sdetail[48], data[240], summary[sizeof(s_p.last_status)];
         xml_value(msg, "<ivec:status>", status, sizeof(status));
         xml_value(msg, "<ivec:status_detail>", sdetail, sizeof(sdetail));
         xml_value(msg, "<![CDATA[", data, sizeof(data));
+        // Newer models (TS200 series) have no CIR field: their ink is a list of
+        // <ivec:ink> (model in CDATA, color Black/Color, level 0..100). Turned
+        // into the CIR form the drivers read, plus the cartridges:
+        // "CIR:CL=010,BK=000;CART:CL=CL-746S,BK=PG-745S;"
+        if (strstr(msg, "<ivec:marker_info>") && !strstr(data, "CIR:")) {
+            int lv[2] = {-1, -1};       // CL, BK
+            char cart[2][20] = {"", ""};
+            for (const char *ink = strstr(msg, "<ivec:ink>"); ink; ink = strstr(ink + 1, "<ivec:ink>")) {
+                const char *end = strstr(ink, "</ivec:ink>");
+                if (!end)
+                    break;
+                char color[12], level[8], model[20];
+                xml_value(ink, "<ivec:color>", color, sizeof(color));
+                xml_value(ink, "<ivec:level>", level, sizeof(level));
+                xml_value(ink, "<![CDATA[", model, sizeof(model));
+                int k = !strcmp(color, "Black") ? 1 : !strcmp(color, "Color") ? 0 : -1;
+                if (k < 0 || strstr(ink, "<ivec:color>") > end)
+                    continue;
+                lv[k] = level[0] >= '0' && level[0] <= '9' ? atoi(level) : -1;
+                snprintf(cart[k], sizeof(cart[k]), "%s", model);
+            }
+            char cl[4] = "UK", bk[4] = "UK";
+            if (lv[0] >= 0)
+                snprintf(cl, sizeof(cl), "%03d", lv[0] > 100 ? 100 : lv[0]);
+            if (lv[1] >= 0)
+                snprintf(bk, sizeof(bk), "%03d", lv[1] > 100 ? 100 : lv[1]);
+            snprintf(data, sizeof(data), "CIR:CL=%s,BK=%s;CART:CL=%s,BK=%s;", cl, bk, cart[0], cart[1]);
+        }
         snprintf(summary, sizeof(summary), "%s (%s) %s", status, sdetail[0] ? sdetail : "-", data);
         xSemaphoreTake(s_p.lock, portMAX_DELAY);
         s_p.status.valid = true;
@@ -549,6 +589,7 @@ static void open_device(uint8_t addr)
     xSemaphoreGive(s_p.lock);
     s_p.msg_len = 0;
     s_p.last_status[0] = 0;
+    s_p.raw_status_logged = false;
     memset(&s_p.status, 0, sizeof(s_p.status));
     s_p.in_stopped = false;
     s_p.connected = true;

@@ -30,6 +30,8 @@ typedef struct {
         const char *name;       // "Black", "Color"
         const char *color;      // "#000000", "#00FFFF#FF00FF#FFFF00"
         int level;              // 0..100, -2 unknown, -3 some remaining
+        char cartridge[20];     // "PG-745S", "" when unknown
+        int pages;              // estimated pages left (rated yield x level); only with a cartridge
     } supply[AIRPRINT_MAX_SUPPLIES];
     int nsupplies;
 } airprint_status_t;
